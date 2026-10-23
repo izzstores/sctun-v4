@@ -103,7 +103,7 @@ setup_bot() {
     SERVER_IP=$(curl -s ipv4.icanhazip.com)
     DOMAIN=$(cat /etc/xray/domain 2>/dev/null || echo "(Domain not set)")
 
-    export KEYAPI=8681894724:AAEH_ZDs98e8rbs9_4_NXlYoDYdf2JMjEKE
+    export KEYAPI=8633772441:AAFsL01AiLcENpkjeg5tL5ulNgKNOxJTBiU
     export CHATID=6932092380
     grep -q "botapi.conf" /etc/profile || echo "source /etc/botapi.conf" >> /etc/profile
     source /etc/botapi.conf
