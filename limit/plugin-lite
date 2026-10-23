@@ -103,10 +103,16 @@ setup_bot() {
     SERVER_IP=$(curl -s ipv4.icanhazip.com)
     DOMAIN=$(cat /etc/xray/domain 2>/dev/null || echo "(Domain not set)")
 
-    export KEYAPI=8633772441:AAFsL01AiLcENpkjeg5tL5ulNgKNOxJTBiU
-    export CHATID=6932092380
-    grep -q "botapi.conf" /etc/profile || echo "source /etc/botapi.conf" >> /etc/profile
-    source /etc/botapi.conf
+    export KEYAPI="8633772441:AAFsL01AiLcENpkjeg5tL5ulNgKNOxJTBiU"
+    export CHATID="6932092380"
+    if [ ! -f /etc/botapi.conf ]; then
+        echo "export KEYAPI="$KEYAPI"" > /etc/botapi.conf
+        echo "export CHATID="$CHATID"" >> /etc/botapi.conf
+        chmod 600 /etc/botapi.conf
+    fi
+    sed -i '/botapi.conf/d' /etc/profile /root/.bashrc 2>/dev/null || true
+    echo '[ -f /etc/botapi.conf ] && . /etc/botapi.conf' >> /etc/profile
+    [ -f /etc/botapi.conf ] && . /etc/botapi.conf
 
     MESSAGE="---- *Plugin Installed* ----
  *Auth Key:* \`$AUTH_KEY\`
