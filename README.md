@@ -1,10 +1,38 @@
-<h1 align="center">Autoscript Tunneling - IZZ TUNNELING (sctun-v4)</h1>
 
-## 🚀 INSTALL SCRIPT
 
-### 1. Persiapan Sistem
+```markdown
+<div align="center">
 
-Jalankan perintah berikut untuk setup awal:
+# ⚡ IZZ TUNNELING (sctun-v4)
+High-Performance & Fully Automated VPN/Tunneling Setup for Linux
+
+[![Telegram](https://img.shields.io/badge/Telegram-@izzcoyy-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/izzcoyy)
+[![WhatsApp](https://img.shields.io/badge/WhatsApp-Chat%20Admin-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)](https://wa.me/6282213283021)
+[![Architecture](https://img.shields.io/badge/Arch-x86__64-informational?style=for-the-badge&logo=linux&logoColor=white)](#-spesifikasi--arsitektur)
+[![OS Support](https://img.shields.io/badge/OS-Debian%20%7C%20Ubuntu-orange?style=for-the-badge&logo=debian&logoColor=white)](#-sistem-operasi-didukung)
+
+---
+
+</div>
+
+## 🌟 Fitur Utama
+
+- ⚡ Otomatisasi Total: Setup dinamis, cepat, dan otomatis menerapkan tuning kernel terbaik.
+- 🛡️ Keamanan Maksimal: Proteksi brute-force dengan Fail2ban & filter DNS iklan Indonesia.
+- 🚀 Core Xray Khusus: Engine Xray kustom yang dioptimalkan oleh `@izzcoyy`.
+- 🧹 Auto Maintenance:
+  - Auto swap 1 GB (mencegah Out-Of-Memory pada RAM kecil).
+  - Pembersihan log sistem otomatis tiap 3 menit.
+  - Hapus user kedaluwarsa secara otomatis.
+- 📊 Manajemen Lengkap: Manajemen akun, pemantauan status, dan servis yang terpusat.
+
+---
+
+## 🚀 Panduan Instalasi
+
+### 1. Persiapan Jaringan & DNS
+
+Jalankan perintah berikut untuk mengoptimalkan DNS dan menonaktifkan IPv6:
 
 ```bash
 rm -f /etc/resolv.conf
@@ -17,36 +45,32 @@ echo "net.ipv6.conf.default.disable_ipv6 = 1" >> /etc/sysctl.conf
 sysctl -p
 ```
 
----
-
-### 2. Update Package
+2. Update Dependensi Sistem
 
 ```bash
 apt update -y && apt upgrade -y --fix-missing && apt install --reinstall wget curl screen -y
 ```
 
----
+3. Eksekusi Script
 
-### 3. Install Script
+Jalankan instalasi di dalam sesi `screen` agar proses tetap aman jika koneksi terputus:
 
 ```bash
 screen -S setup-session bash -c "wget -q https://raw.githubusercontent.com/izzstores/sctun-v4/main/install.sh && chmod +x install.sh && ./install.sh"
 ```
----
 
-### Jika koneksi terputus saat instalasi
-
-Gunakan perintah berikut untuk masuk kembali ke session:
-
-```bash
-screen -r -d setup-session
-```
+> [!TIP]
+> Koneksi terputus saat instalasi?  
+> Buka kembali sesi instalasi yang sedang berjalan dengan:
+> ```bash
+> screen -r -d setup-session
+> ```
 
 ---
 
-## UPDATE SCRIPT
+## 🔄 Pembaruan (Update Script)
 
-Untuk melakukan update ke versi terbaru, gunakan:
+Untuk mengupdate script ke versi terbaru:
 
 ```bash
 wget https://raw.githubusercontent.com/izzstores/sctun-v4/main/update.sh && chmod +x update.sh && ./update.sh
@@ -54,133 +78,80 @@ wget https://raw.githubusercontent.com/izzstores/sctun-v4/main/update.sh && chmo
 
 ---
 
-## TESTED ON OS
+📡 Port Layanan
 
-Script ini sudah diuji pada sistem berikut:
-
-* Ubuntu 24.04.5 LTS
-* Debian 12 (Bookworm)
-* Ubuntu 20.04.5 LTS
-* Debian 10 (Buster)
-
----
-
-## FITUR UTAMA
-
-* Auto swap 1GB
-* Instalasi otomatis & dinamis
-* Optimasi konfigurasi server
-* Core Xray by @izzcoyy
-* Fail2ban security system
-* Auto block sebagian iklan Indonesia
-* Auto clean log tiap 3 menit
-* Auto delete akun expired
-* Detail user management
+| Protokol | Transport | Port | Keterangan |
+| :--- | :--- | :---: | :--- |
+| Trojan | WS / gRPC | `443` | TLS Encrypted |
+| Shadowsocks | WS / gRPC | `443` | TLS Encrypted |
+| VLESS | WS / gRPC | `443` | TLS Encrypted |
+| VLESS | Non-TLS | `80` | Direct HTTP |
+| VMess | WS / gRPC | `443` | TLS Encrypted |
+| VMess | Non-TLS | `80` | Direct HTTP |
+| SSH | WS / TLS | `443` | WebSocket TLS |
+| SSH | Non-TLS | `8880` | CDN / Direct Non-TLS |
+| OpenVPN | SSL / TCP | `1194` | OVPN Tunnel |
+| SlowDNS | UDP | `5300` | DNS Tunneling |
 
 ---
 
-## PORT YANG DIGUNAKAN
+☁️ Konfigurasi Cloudflare
 
+Atur parameter domain di dashboard Cloudflare sebagai berikut:
+
+| Opsi | Status / Nilai | Catatan |
+| :--- | :---: | :--- |
+| SSL/TLS Mode | `FULL` | Hindari mode Flexible |
+| SSL/TLS Recommender | `OFF` | Mencegah redirect berulang |
+| gRPC | `ON` | Wajib untuk endpoint gRPC |
+| WebSocket | `ON` | Wajib untuk endpoint WS |
+| Always Use HTTPS | `OFF` | Agar port Non-TLS (80, 8880) aktif |
+| Under Attack Mode | `OFF` | Mencegah pemblokiran handshake |
+
+---
+
+🖥️ Sistem Operasi Didukung
+
+Distribusi Linux
+| OS | Versi | Status |
+| :--- | :--- | :---: |
+| *Ubuntu* | 20.04 LTS, 22.04 LTS, 24.04 LTS | 🟢 Sangat Direkomendasikan |
+| *Ubuntu* | 18.04, 23.10 | 🟡 Legacy / Testing |
+| *Debian* | 10 (Buster), 11 (Bullseye), 12 (Bookworm) | 🟢 Stabil |
+| *Debian* | 9 (Stretch) | 🟡 Kurang Stabil |
+| *Debian* | 13 (Trixie), 14 (Forky) | ⏳ Segera Hadir |
+| *Kali Linux* | Kali Rolling | 🟢 Stabil |
+
+*Virtualisasi*
+KVM • VMware • Xen • XenServer • Proxmox • LXC • OpenVZ 7 • Virtuozzo • ZFS
+
+---
+
+*⚙️ Spesifikasi & Arsitektur*
+
+| Komponen | Kebutuhan Minimum | Rekomendasi |
+| :--- | :--- | :--- |
+| *CPU* | 1 vCPU | 1 vCPU atau lebih |
+| *RAM* | 512 MB _(Auto-Swap aktif)_ | 1 GB+ |
+| *Storage* | 10 GB SSD | 15 GB+ SSD NVMe |
+| *OS* | Debian 10+ / Ubuntu 20.04+ | Ubuntu 22.04 / 24.04 LTS |
+
+> [!IMPORTANT]
+> *Arsitektur CPU:*
+> - ✅ *x86_64 (64-bit)* didukung penuh.
+> - ❌ *ARM / i386 (32-bit)* tidak didukung.
+
+---
+
+*📬 Kontak & Pengembang*
+
+<div align="center">
+
+Dibuat & dikelola oleh *[@izzcoyy](https://t.me/izzcoyy)*
+
+[![Telegram](https://img.shields.io/badge/Telegram-Chat%20Pengembang-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/izzcoyy)
+&nbsp;
+[![WhatsApp](https://img.shields.io/badge/WhatsApp-WhatsApp%20Fast%20Response-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)](https://wa.me/6282213283021)
+
+</div>
 ```
-TROJAN WS        : 443
-TROJAN GRPC      : 443
-SHADOWSOCKS WS   : 443
-SHADOWSOCKS GRPC : 443
-VLESS WS         : 443
-VLESS GRPC       : 443
-VLESS NON TLS    : 80
-VMESS WS         : 443
-VMESS GRPC       : 443
-VMESS NON TLS    : 80
-SSH WS / TLS     : 443
-SSH NON TLS      : 8880
-OVPN SSL/TCP     : 1194
-SLOWDNS          : 5300
-```
-
----
-
-## SETTING CLOUDFLARE
-
-```
-SSL/TLS                : FULL
-SSL/TLS Recommender    : OFF
-gRPC                   : ON
-WebSocket              : ON
-Always Use HTTPS       : OFF
-Under Attack Mode      : OFF
-```
-
----
-
-## SUPPORTED SYSTEM
-
-### Debian
-
-* 9 (Stretch) – Unstable
-* 10 (Buster) – Stable
-* 11 (Bullseye) – Stable
-* 12 (Bookworm) – Stable
-* 13 (Trixie) – Coming Soon
-* 14 (Forky) – Coming Soon
-
-### Ubuntu
-
-* 18.04, 23.10 (various status)
-* 20.04 LTS, 22.04 LTS, 24.04 LTS – Stable recommended
-
-### Kali Linux
-
-* Kali Rolling – Stable
-
----
-
-## VIRTUALIZATION SUPPORT
-
-* Xen
-* KVM
-* VMware
-* XenServer
-* LXC
-* OpenVZ 7
-* Proxmox
-* Virtuozzo
-* ZFS environments
-
----
-
-## MINIMUM REQUIREMENTS
-
-* RAM: 512MB
-* SSD: 10GB
-* CPU: 1 vCPU
-
----
-
-## RECOMMENDED SPEC
-
-* 1 vCPU
-* 1GB RAM
-* 10GB SSD
-* Ubuntu / Debian LTS version
-
----
-
-## ARCHITECTURE
-
-* x86_64 (64-bit) ✅ Supported
-* ARM / i386 ❌ Not supported
-
----
-
-## CONTACT & AUTHOR
-
-<p align="center">
-<a href="https://t.me/izzcoyy"><img src="https://img.shields.io/badge/Telegram-Contact-blue?style=for-the-badge&logo=telegram"></a>
-</p>
-
-<p align="center">
-<a href="wa.me/6282213283021"><img src="https://img.shields.io/badge/WhatsApp-Contact-green?style=for-the-badge&logo=whatsapp"></a>
-</p>
-```
-
