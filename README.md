@@ -5,7 +5,7 @@
 
 [![Telegram](https://img.shields.io/badge/Telegram-@izzcoyy-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/izzcoyy)
 [![WhatsApp](https://img.shields.io/badge/WhatsApp-Chat%20Admin-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)](https://wa.me/6282213283021)
-[![Architecture](https://img.shields.io/badge/Arch-x86__64-informational?style=for-the-badge&logo=linux&logoColor=white)](#-arsitektur)
+[![Architecture](https://img.shields.io/badge/Arch-x86__64%20%7C%20ARM64%20%7C%20ARM%20%7C%20i386-informational?style=for-the-badge&logo=linux&logoColor=white)](#-spesifikasi--arsitektur)
 [![OS Support](https://img.shields.io/badge/OS-Debian%20%7C%20Ubuntu-orange?style=for-the-badge&logo=debian&logoColor=white)](#-sistem-operasi-didukung)
 
 ---
@@ -143,9 +143,11 @@ Didukung pada berbagai tipe virtualisasi server & hypervisor:
 | **Penyimpanan** | 10 GB SSD | 10 GB+ SSD / NVMe |
 | **Sistem Operasi** | Debian 10+ / Ubuntu 20.04+ | Ubuntu / Debian LTS version |
 
-### Arsitektur
-- ✅ **x86_64 (64-bit)** : Supported
-- ❌ **ARM / i386** : Not supported
+### Arsitektur (Multi-Architecture Supported)
+- ✅ **x86_64 / amd64 (64-bit)** : Supported
+- ✅ **aarch64 / arm64** : Supported (Oracle Ampere, AWS Graviton, RPi 4/5 64-bit)
+- ✅ **armv7l / armhf** : Supported (RPi 2/3 32-bit, OrangePi)
+- ✅ **i386 / i686 (32-bit)** : Supported
 
 ---
 
