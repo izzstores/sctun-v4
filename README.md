@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚡ Autoscript — IZZ TUNNELING (sctun-v4)
+# ⚡ Autoscript IZZ TUNNELING (sctun-v4)
 **High-Performance & Fully Automated VPN/Tunneling Setup for Linux**
 
 [![Telegram](https://img.shields.io/badge/Telegram-@izzcoyy-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/izzcoyy)
