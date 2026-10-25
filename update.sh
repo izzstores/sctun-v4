@@ -51,7 +51,15 @@ systemctl daemon-reload >/dev/null 2>&1
 systemctl restart ssh >/dev/null 2>&1 || service ssh restart >/dev/null 2>&1
 systemctl restart dropbear >/dev/null 2>&1 || service dropbear restart >/dev/null 2>&1
 systemctl restart nginx >/dev/null 2>&1
+wget -q -O /usr/bin/ws "https://raw.githubusercontent.com/izzstores/sctun-v4/main/limit/ws"
+chmod +x /usr/bin/ws
+wget -q -O /usr/bin/tun.conf "https://raw.githubusercontent.com/izzstores/sctun-v4/main/limit/tun.conf"
+chmod 644 /usr/bin/tun.conf
+wget -q -O /etc/systemd/system/ws.service "https://raw.githubusercontent.com/izzstores/sctun-v4/main/limit/ws.service"
+chmod +x /etc/systemd/system/ws.service
+systemctl daemon-reload >/dev/null 2>&1
 systemctl restart ws >/dev/null 2>&1
+
 
 systemctl disable --now haproxy 2>/dev/null || true
 apt remove -y haproxy 2>/dev/null || true

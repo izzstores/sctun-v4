@@ -746,15 +746,8 @@ wget  -O /etc/systemd/system/ws.service "${REPO}limit/ws.service" >/dev/null 2>&
 chmod +x /etc/systemd/system/ws.service
 chmod 644 /usr/bin/tun.conf
 
-if [ "$ARCH_TYPE" = "x86_64" ]; then
-    wget -O /usr/bin/ws "${REPO}limit/ws" >/dev/null 2>&1
-    chmod +x /usr/bin/ws
-fi
-
-if [ ! -f /usr/bin/ws ] || ! /usr/bin/ws -h >/dev/null 2>&1; then
-    wget -O /usr/bin/ws "${REPO}limit/ws_proxy.py" >/dev/null 2>&1
-    chmod +x /usr/bin/ws
-fi
+wget -O /usr/bin/ws "${REPO}limit/ws" >/dev/null 2>&1
+chmod +x /usr/bin/ws
 
 systemctl disable ws
 systemctl stop ws
