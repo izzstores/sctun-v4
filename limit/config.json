@@ -195,6 +195,26 @@
            "serviceName": "ss-grpc"
           }
        }
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 10010,
+      "protocol": "dokodemo-door",
+      "settings": {
+        "network": "tcp,udp",
+        "followRedirect": true
+      },
+      "tag": "dokodemo-in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 10808,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "socks-local"
     }
   ],
   "outbounds": [
