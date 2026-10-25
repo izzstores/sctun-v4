@@ -63,6 +63,16 @@ def handle_client(client_sock, target_host, target_port):
         target_sock.settimeout(10.0)
         target_sock.connect((target_host, target_port))
 
+        for s in (client_sock, target_sock):
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+            s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            try:
+                s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 30)
+                s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 10)
+                s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 5)
+            except Exception:
+                pass
+
         client_sock.sendall(b"HTTP/1.1 101 Switching Protocols\r\n\r\n")
 
         header_end = req.find(b"\r\n\r\n") + 4
@@ -100,7 +110,7 @@ def start_listener(listen_port, target_host, target_port):
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
         server.bind(('0.0.0.0', listen_port))
-        server.listen(128)
+        server.listen(1024)
         while True:
             client, _ = server.accept()
             t = threading.Thread(target=handle_client, args=(client, target_host, target_port), daemon=True)

@@ -33,6 +33,26 @@ echo -e "\e[0;33m][1;37m -[1;32m OK !\033[1;37m"
 tput cnorm
 }
 res1() {
+# --- Apply Network & SSH Stability Anti-Disconnect Settings ---
+wget -q -O /etc/ssh/sshd_config "https://raw.githubusercontent.com/izzstores/sctun-v4/main/limit/sshd"
+chmod 600 /etc/ssh/sshd_config
+wget -q -O /etc/default/dropbear "https://raw.githubusercontent.com/izzstores/sctun-v4/main/limit/dropbear.conf"
+chmod 644 /etc/default/dropbear
+wget -q -O /etc/nginx/conf.d/xray.conf "https://raw.githubusercontent.com/izzstores/sctun-v4/main/limit/xray.conf"
+domain=$(cat /etc/xray/domain 2>/dev/null || cat /root/domain 2>/dev/null || echo "localhost")
+sed -i "s/xxx/${domain}/g" /etc/nginx/conf.d/xray.conf
+
+# Kernel KeepAlive
+sysctl -w net.ipv4.tcp_keepalive_time=60 >/dev/null 2>&1
+sysctl -w net.ipv4.tcp_keepalive_intvl=10 >/dev/null 2>&1
+sysctl -w net.ipv4.tcp_keepalive_probes=5 >/dev/null 2>&1
+
+systemctl daemon-reload >/dev/null 2>&1
+systemctl restart ssh >/dev/null 2>&1 || service ssh restart >/dev/null 2>&1
+systemctl restart dropbear >/dev/null 2>&1 || service dropbear restart >/dev/null 2>&1
+systemctl restart nginx >/dev/null 2>&1
+systemctl restart ws >/dev/null 2>&1
+
 systemctl disable --now haproxy 2>/dev/null || true
 apt remove -y haproxy 2>/dev/null || true
 rm -rf /etc/haproxy
