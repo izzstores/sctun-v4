@@ -1049,4 +1049,6 @@ echo -e "${green} [✓] Notifikasi Telegram Terkirim ke Bot IZZ TUNNELING${NC}"
 echo ""
 echo -e "Menu akan dibuka..."
 sleep 2
-/usr/local/sbin/menu
+sync && echo 3 > /proc/sys/vm/drop_caches 2>/dev/null || true
+printf "\033[2J\033[3J\033[H"
+exec /usr/local/sbin/menu

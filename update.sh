@@ -168,5 +168,7 @@ echo -e "  \033[1;91m update script service\033[1;37m"
 fun_bar 'res1'
 echo -e "\e[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m"
 echo -e ""
-read -n 1 -s -r -p "Press [ Enter ] to back on menu"
-menu
+read -n 1 -s -r -p "Tekan [ Enter ] untuk kembali ke menu..."
+sync && echo 3 > /proc/sys/vm/drop_caches 2>/dev/null || true
+printf "\033[2J\033[3J\033[H"
+exec menu
