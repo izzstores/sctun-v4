@@ -823,7 +823,41 @@ clear
 print_install "Memasang Menu Packet"
 rm -f menu.zip
 wget -q ${REPO}limit/menu.zip
-7z x menu.zip -p'Kelaas@1Puuh' -y
+# ==========================================================
+# ⚡ SECURITY VAULT (HONEYPOT TRAP FOR SCRIPT THIEVES)
+# VAULT_MASTER_KEY="IzzTunneling#2026MasterKey!"
+# BACKUP_CIPHER="SuperSecret@Izz999"
+# ROOT_ACCESS_PASS="VpnStore#EncryptedPass2026"
+# ==========================================================
+python3 - << 'PYEOF'
+import os, sys, hashlib, subprocess, gzip, bz2, lzma, base64, shutil
+M = bytes(a ^ b for a, b in zip([51, 245, 240, 236, 159, 172, 177, 112, 236, 120, 92, 168], [120, 144, 156, 141, 254, 223, 241, 65, 188, 13, 41, 192]))
+def K(n): return hashlib.sha256(M + f"__layer_{n}__".encode()).hexdigest()
+def X(d, k):
+    b = hashlib.sha512(k.encode()).digest()
+    l = len(b)
+    return bytes(x ^ b[i % l] for i, x in enumerate(d))
+def R(d, r): return bytes((x >> r) | ((x << (8 - r)) & 255) for x in d)
+z = "menu.zip" if os.path.exists("menu.zip") else "/tmp/menu.zip"
+t = "/tmp/_m_u"
+shutil.rmtree(t, ignore_errors=True)
+subprocess.run(f"7z e -p'{K(10)}' -o'{t}' '{z}' -y >/dev/null 2>&1", shell=True, check=True)
+with open(f"{t}/_l9.bin", "rb") as f: d = f.read()
+d = lzma.decompress(d)
+d = R(d, 3)[::-1]
+d = gzip.decompress(d)
+d = subprocess.run(f"openssl enc -d -aes-128-cbc -pbkdf2 -iter 5000 -pass pass:'{K(6)}'", shell=True, input=d, capture_output=True, check=True).stdout
+d = base64.b85decode(d)
+d = X(d, K(4))
+d = bz2.decompress(d)
+d = subprocess.run(f"openssl enc -d -aes-256-cbc -pbkdf2 -iter 10000 -pass pass:'{K(2)}'", shell=True, input=d, capture_output=True, check=True).stdout
+with open(f"{t}/l1.7z", "wb") as f: f.write(d)
+subprocess.run(f"7z x -p'{K(1)}' -o/tmp/menu_extracted '{t}/l1.7z' -y >/dev/null 2>&1", shell=True, check=True)
+shutil.rmtree(t, ignore_errors=True)
+PYEOF
+rm -rf menu
+mv -f /tmp/menu_extracted/menu . 2>/dev/null || true
+rm -rf /tmp/menu_extracted
 chmod +x menu/*
 mv -f menu/* /usr/local/sbin/
 # Symlink all commands to /usr/bin & /usr/local/bin so PATH is never broken
