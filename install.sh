@@ -733,6 +733,7 @@ apt install -y fail2ban
 systemctl enable --now fail2ban
 systemctl restart fail2ban
 clear
+apt install dropbear -y
 echo "Banner /etc/kyt.txt" >>/etc/ssh/sshd_config
 sed -i 's@DROPBEAR_BANNER=""@DROPBEAR_BANNER="/etc/kyt.txt"@g' /etc/default/dropbear
 wget  -O /etc/kyt.txt "${REPO}limit/issue.net"
@@ -749,14 +750,14 @@ chmod 644 /usr/bin/tun.conf
 wget -O /usr/bin/ws "${REPO}limit/ws" >/dev/null 2>&1
 chmod +x /usr/bin/ws
 
-systemctl disable ws
-systemctl stop ws
 systemctl enable ws
 systemctl start ws
 systemctl restart ws
-wget  -q -O /usr/local/share/xray/geosite.dat "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat" >/dev/null 2>&1
-wget  -q -O /usr/local/share/xray/geoip.dat "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat" >/dev/null 2>&1
-wget  -O /usr/sbin/ftvpn "${REPO}limit/ftvpn" >/dev/null 2>&1
+
+wget -q -O /usr/local/share/xray/geosite.dat "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat" >/dev/null 2>&1
+wget -q -O /usr/local/share/xray/geoip.dat "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat" >/dev/null 2>&1
+
+wget -O /usr/sbin/ftvpn "${REPO}limit/ftvpn" >/dev/null 2>&1
 chmod +x /usr/sbin/ftvpn
 iptables -A FORWARD -m string --string "get_peers" --algo bm -j DROP
 iptables -A FORWARD -m string --string "announce_peer" --algo bm -j DROP
@@ -968,6 +969,8 @@ systemctl start netfilter-persistent
 systemctl enable --now rc-local
 systemctl enable --now cron
 systemctl enable --now netfilter-persistent
+systemctl enable ws
+systemctl restart ws
 systemctl restart nginx
 systemctl restart xray
 systemctl restart cron
