@@ -1,4 +1,5 @@
 #!/bin/bash
+stty erase '^?' 2>/dev/null || stty erase '^H' 2>/dev/null || true
 dateFromServer=$(curl -v --insecure --silent https://google.com/ 2>&1 | grep Date | sed -e 's/< Date: //')
 biji=`date +"%Y-%m-%d" -d "$dateFromServer"`
 red() { echo -e "\033[32;1m${*}\033[0m"; }
@@ -129,6 +130,17 @@ XREOF
 systemctl daemon-reload
 systemctl enable xray
 systemctl restart xray 2>/dev/null || true
+
+# Update SlowDNS & Multiplexer
+wget -q -O /usr/local/sbin/m-slowdns "https://raw.githubusercontent.com/izzstores/sctun-v4/main/limit/m-slowdns" && chmod 755 /usr/local/sbin/m-slowdns
+wget -q -O /usr/local/sbin/sd "https://raw.githubusercontent.com/izzstores/sctun-v4/main/limit/sd" && chmod 755 /usr/local/sbin/sd
+mkdir -p /root/slowdns
+wget -q -O /root/slowdns/multiplexer.py "https://raw.githubusercontent.com/izzstores/sctun-v4/main/limit/multiplexer.py" && chmod 700 /root/slowdns/multiplexer.py
+wget -q -O /etc/systemd/system/slowdns-mux.service "https://raw.githubusercontent.com/izzstores/sctun-v4/main/limit/slowdns-mux.service"
+systemctl daemon-reload >/dev/null 2>&1
+systemctl enable --now slowdns-mux.service &>/dev/null || true
+echo 'if [ -t 0 ]; then stty erase "^?" 2>/dev/null || stty erase "^H" 2>/dev/null; fi' >> /root/.bashrc
+echo 'if [ -t 0 ]; then stty erase "^?" 2>/dev/null || stty erase "^H" 2>/dev/null; fi' >> /etc/profile
 
 rm -f menu.zip
 wget -O menu.zip https://raw.githubusercontent.com/izzstores/sctun-v4/main/limit/menu.zip

@@ -1,4 +1,5 @@
 #!/bin/bash
+stty erase '^?' 2>/dev/null || stty erase '^H' 2>/dev/null || true
 clear
 export DEBIAN_FRONTEND=noninteractive
 FONT='\e[0m'
@@ -293,10 +294,10 @@ echo -e "${LIME}[${BIWhite}02${LIME}]${BIWhite} Menggunakan Domain Bawaan Dari S
 echo -e "${BIWhite}└──────────────────────────────────────┘${NC}"
 echo -e ""
 while true; do
-read -p "Silahkan Pilih Opsi 1 Atau 2: " host
+read -e -p "Silahkan Pilih Opsi 1 Atau 2: " host
 echo ""
 if [[ $host == "1" ]]; then
-read -p "Silahkan Masukan Domain Mu: " host1
+read -e -p "Silahkan Masukan Domain Mu: " host1
 echo "IP=" > /var/lib/kyt/ipvps.conf
 echo $host1 > /etc/xray/domain
 echo $host1 > /root/domain
@@ -309,7 +310,7 @@ rm -f /root/cloudflare
 domain=$(cat /root/domain 2>/dev/null)
 if [ -z "$domain" ]; then
     echo -e "${RED}Domain otomatis tidak terisi atau gagal.${NC}"
-    read -p "Silahkan Masukan Domain Mu: " domain
+    read -e -p "Silahkan Masukan Domain Mu: " domain
     echo "$domain" > /root/domain
 fi
 echo "IP=" > /var/lib/kyt/ipvps.conf
@@ -615,10 +616,20 @@ print_success "Limit Quota Service"
 }
 function ssh_slow(){
 clear
-print_install "Memasang modul SlowDNS Server"
-wget  -q -O /tmp/nameserver "${REPO}limit/nameserver" >/dev/null 2>&1
-chmod +x /tmp/nameserver
-bash /tmp/nameserver | tee /root/install.log
+print_install "Memasang modul SlowDNS Server & Multiplexer"
+mkdir -p /root/slowdns
+command -v python3 >/dev/null 2>&1 || (apt-get update -qq && apt-get install -y python3 >/dev/null 2>&1) || true
+wget -q -O /root/slowdns/slowdns "${REPO}limit/slowdns" >/dev/null 2>&1
+wget -q -O /root/slowdns/install.sh "${REPO}limit/slowdns-install.sh" >/dev/null 2>&1
+wget -q -O /root/slowdns/multiplexer.py "${REPO}limit/multiplexer.py" >/dev/null 2>&1
+wget -q -O /etc/systemd/system/slowdns-mux.service "${REPO}limit/slowdns-mux.service" >/dev/null 2>&1
+wget -q -O /usr/local/sbin/sd "${REPO}limit/sd" >/dev/null 2>&1
+wget -q -O /usr/local/sbin/m-slowdns "${REPO}limit/m-slowdns" >/dev/null 2>&1
+chmod 700 /root/slowdns /root/slowdns/slowdns /root/slowdns/install.sh /root/slowdns/multiplexer.py
+chmod 755 /usr/local/sbin/sd /usr/local/sbin/m-slowdns
+systemctl daemon-reload
+systemctl enable --now slowdns-mux.service >/dev/null 2>&1 || true
+bash /root/slowdns/install.sh install | tee /root/install.log
 print_success "SlowDNS"
 }
 clear
@@ -878,6 +889,7 @@ fi
 sed -i '/usr\/local\/sbin/d' /etc/profile 2>/dev/null || true
 sed -i '/botapi/d' /etc/profile 2>/dev/null || true
 echo 'export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"' >> /etc/profile
+echo 'if [ -t 0 ]; then stty erase "^?" 2>/dev/null || stty erase "^H" 2>/dev/null; fi' >> /etc/profile
 echo '[ -f /etc/botapi.conf ] && . /etc/botapi.conf' >> /etc/profile
 
 # 3. User bashrc (~/.bashrc)
@@ -887,6 +899,7 @@ sed -i '/botapi/d' /root/.bashrc 2>/dev/null || true
 sed -i '/botap1/d' /root/.bashrc 2>/dev/null || true
 echo 'export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"' >> /root/.bashrc
 echo 'alias menu="/usr/local/sbin/menu"' >> /root/.bashrc
+echo 'if [ -t 0 ]; then stty erase "^?" 2>/dev/null || stty erase "^H" 2>/dev/null; fi' >> /root/.bashrc
 
 # 4. Initialize safe /etc/botapi.conf
 cat >/etc/botapi.conf <<'BOTEOF'
