@@ -131,6 +131,16 @@ systemctl daemon-reload
 systemctl enable xray
 systemctl restart xray 2>/dev/null || true
 
+# Free port 53 & remove old redirect 5300
+systemctl stop systemd-resolved > /dev/null 2>&1 || true
+systemctl disable systemd-resolved > /dev/null 2>&1 || true
+systemctl mask systemd-resolved > /dev/null 2>&1 || true
+rm -f /etc/resolv.conf
+echo -e "nameserver 8.8.8.8\nnameserver 1.1.1.1" > /etc/resolv.conf
+iptables -t nat -D PREROUTING -p udp --dport 53 -j REDIRECT --to-ports 5300 >/dev/null 2>&1 || true
+sed -i '/to-ports 5300/d' /etc/rc.local 2>/dev/null || true
+netfilter-persistent save >/dev/null 2>&1 || true
+
 # Update SlowDNS & Multiplexer
 mkdir -p /root/slowdns /etc/slowdns
 wget -q -O /root/slowdns/slowdns "https://raw.githubusercontent.com/izzstores/sctun-v4/main/limit/slowdns" && chmod 700 /root/slowdns/slowdns

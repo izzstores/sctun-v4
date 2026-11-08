@@ -1018,8 +1018,7 @@ EOF
 echo "/bin/false" >>/etc/shells
 echo "/usr/sbin/nologin" >>/etc/shells
 cat >/etc/rc.local <<EOF
-iptables -I INPUT -p udp --dport 5300 -j ACCEPT
-iptables -t nat -I PREROUTING -p udp --dport 53 -j REDIRECT --to-ports 5300
+iptables -I INPUT -p udp --dport 53 -j ACCEPT
 systemctl restart netfilter-persistent
 exit 0
 EOF
@@ -1078,13 +1077,12 @@ profile
 restart_system
 }
 function dnsxx(){
-sudo systemctl disable systemd-resolved > /dev/null 2>&1
-sudo systemctl stop systemd-resolved > /dev/null 2>&1
-sudo rm -rf /etc/resolv.config > /dev/null 2>&1
-echo -e "nameserver 8.8.8.8\nnameserver 8.8.4.4" | sudo tee /etc/resolv.conf
-sudo chattr +i /etc/resolv.conf > /dev/null 2>&1
-sudo systemctl start systemd-resolved > /dev/null 2>&1
-sudo systemctl enable systemd-resolved > /dev/null 2>&1
+systemctl stop systemd-resolved > /dev/null 2>&1 || true
+systemctl disable systemd-resolved > /dev/null 2>&1 || true
+systemctl mask systemd-resolved > /dev/null 2>&1 || true
+rm -f /etc/resolv.conf
+echo -e "nameserver 8.8.8.8\nnameserver 1.1.1.1" > /etc/resolv.conf
+iptables -t nat -D PREROUTING -p udp --dport 53 -j REDIRECT --to-ports 5300 >/dev/null 2>&1 || true
 }
 instal
 echo ""
