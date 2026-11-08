@@ -271,6 +271,27 @@ apt autoremove -y
 apt remove --purge -y exim4 ufw firewalld
 print_success "Paket Dasar"
 }
+function setup_ns_slowdns() {
+clear
+print_install "Silahkan Atur Nameserver SlowDNS"
+echo -e "${BIWhite}┌──────────────────────────────────────┐${NC}"
+echo -e "${LIME}Setup Nameserver (NS) SlowDNS ${NC}"
+echo -e "${BIWhite}└──────────────────────────────────────┘${NC}"
+read -e -p " Masukkan NS SlowDNS (contoh: ns.domainanda.com): " ns_domain
+if [ -n "$ns_domain" ]; then
+    mkdir -p /root/slowdns /etc/slowdns
+    echo "$ns_domain" > /etc/xray/dns 2>/dev/null || true
+    echo "SLOWDNS_DOMAIN=\"$ns_domain\"" > /root/slowdns/slowdns.env
+    echo "SLOWDNS_UDP=\":53\"" >> /root/slowdns/slowdns.env
+    echo "SLOWDNS_UPSTREAM=\"127.0.0.1:10053\"" >> /root/slowdns/slowdns.env
+    echo "SLOWDNS_KEY=\"/root/slowdns/server.key\"" >> /root/slowdns/slowdns.env
+    chmod 600 /root/slowdns/slowdns.env
+    cp -f /root/slowdns/slowdns.env /etc/slowdns/slowdns.env 2>/dev/null || true
+    echo -e "${BIWhite}Nameserver SlowDNS: ${ungu}$ns_domain${NC} berhasil diatur"
+    sleep 2
+fi
+}
+
 function pasang_domain() {
 clear
 if [[ -s /root/domain ]]; then
@@ -482,7 +503,7 @@ DEBIAN_FRONTEND=noninteractive dpkg-reconfigure keyboard-configuration
 debconf-set-selections <<<"keyboard-configuration keyboard-configuration/altgr select The default for the keyboard layout"
 debconf-set-selections <<<"keyboard-configuration keyboard-configuration/compose select No compose key"
 debconf-set-selections <<<"keyboard-configuration keyboard-configuration/ctrl_alt_bksp boolean false"
-debconf-set-selections <<<"keyboard-configuration keyboard-configuration/layoutcode string de"
+# debconf-set-selections <<<"keyboard-configuration keyboard-configuration/layoutcode string de"
 debconf-set-selections <<<"keyboard-configuration keyboard-configuration/layout select English"
 debconf-set-selections <<<"keyboard-configuration keyboard-configuration/modelcode string pc105"
 debconf-set-selections <<<"keyboard-configuration keyboard-configuration/model select Generic 105-key (Intl) PC"
@@ -617,19 +638,57 @@ print_success "Limit Quota Service"
 function ssh_slow(){
 clear
 print_install "Memasang modul SlowDNS Server & Multiplexer"
-mkdir -p /root/slowdns
+mkdir -p /root/slowdns /etc/slowdns
 command -v python3 >/dev/null 2>&1 || (apt-get update -qq && apt-get install -y python3 >/dev/null 2>&1) || true
 wget -q -O /root/slowdns/slowdns "${REPO}limit/slowdns" >/dev/null 2>&1
-wget -q -O /root/slowdns/install.sh "${REPO}limit/slowdns-install.sh" >/dev/null 2>&1
+chmod 700 /root/slowdns/slowdns
+ln -sf /root/slowdns/slowdns /etc/slowdns/slowdns 2>/dev/null || true
+
+# Generate keys
+if [ ! -f /root/slowdns/server.key ]; then
+    /root/slowdns/slowdns -gen-key -privkey-file /root/slowdns/server.key -pubkey-file /root/slowdns/server.pub >/dev/null 2>&1 || true
+    chmod 600 /root/slowdns/server.key 2>/dev/null || true
+    chmod 644 /root/slowdns/server.pub 2>/dev/null || true
+fi
+cp -f /root/slowdns/server.key /etc/slowdns/server.key 2>/dev/null || true
+cp -f /root/slowdns/server.pub /etc/slowdns/server.pub 2>/dev/null || true
+
 wget -q -O /root/slowdns/multiplexer.py "${REPO}limit/multiplexer.py" >/dev/null 2>&1
+chmod 700 /root/slowdns/multiplexer.py
+
 wget -q -O /etc/systemd/system/slowdns-mux.service "${REPO}limit/slowdns-mux.service" >/dev/null 2>&1
+
 wget -q -O /usr/local/sbin/sd "${REPO}limit/sd" >/dev/null 2>&1
 wget -q -O /usr/local/sbin/m-slowdns "${REPO}limit/m-slowdns" >/dev/null 2>&1
-chmod 700 /root/slowdns /root/slowdns/slowdns /root/slowdns/install.sh /root/slowdns/multiplexer.py
 chmod 755 /usr/local/sbin/sd /usr/local/sbin/m-slowdns
+
+cat > /etc/systemd/system/slowdns.service <<'SRVEOF'
+[Unit]
+Description=SlowDNS Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/slowdns
+EnvironmentFile=/root/slowdns/slowdns.env
+ExecStartPre=/bin/bash -c 'iptables -w -C INPUT -p udp --dport 53 -j ACCEPT 2>/dev/null || iptables -w -I INPUT -p udp --dport 53 -j ACCEPT'
+ExecStart=/root/slowdns/slowdns -udp ${SLOWDNS_UDP} -privkey-file ${SLOWDNS_KEY} ${SLOWDNS_DOMAIN} ${SLOWDNS_UPSTREAM}
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+SRVEOF
+
 systemctl daemon-reload
 systemctl enable --now slowdns-mux.service >/dev/null 2>&1 || true
-bash /root/slowdns/install.sh install | tee /root/install.log
+systemctl restart slowdns-mux.service >/dev/null 2>&1 || true
+
+if [ -s /root/slowdns/slowdns.env ]; then
+    systemctl enable --now slowdns.service >/dev/null 2>&1 || true
+    systemctl restart slowdns.service >/dev/null 2>&1 || true
+fi
 print_success "SlowDNS"
 }
 clear
@@ -997,6 +1056,7 @@ nginx_install
 base_package
 make_folder_xray
 pasang_domain
+setup_ns_slowdns
 password_default
 pasang_ssl
 install_xray

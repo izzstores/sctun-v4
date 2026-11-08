@@ -132,13 +132,49 @@ systemctl enable xray
 systemctl restart xray 2>/dev/null || true
 
 # Update SlowDNS & Multiplexer
+mkdir -p /root/slowdns /etc/slowdns
+wget -q -O /root/slowdns/slowdns "https://raw.githubusercontent.com/izzstores/sctun-v4/main/limit/slowdns" && chmod 700 /root/slowdns/slowdns
+ln -sf /root/slowdns/slowdns /etc/slowdns/slowdns 2>/dev/null || true
+if [ ! -f /root/slowdns/server.key ]; then
+    /root/slowdns/slowdns -gen-key -privkey-file /root/slowdns/server.key -pubkey-file /root/slowdns/server.pub >/dev/null 2>&1 || true
+    chmod 600 /root/slowdns/server.key 2>/dev/null || true
+    chmod 644 /root/slowdns/server.pub 2>/dev/null || true
+fi
+cp -f /root/slowdns/server.key /etc/slowdns/server.key 2>/dev/null || true
+cp -f /root/slowdns/server.pub /etc/slowdns/server.pub 2>/dev/null || true
+
 wget -q -O /usr/local/sbin/m-slowdns "https://raw.githubusercontent.com/izzstores/sctun-v4/main/limit/m-slowdns" && chmod 755 /usr/local/sbin/m-slowdns
 wget -q -O /usr/local/sbin/sd "https://raw.githubusercontent.com/izzstores/sctun-v4/main/limit/sd" && chmod 755 /usr/local/sbin/sd
-mkdir -p /root/slowdns
 wget -q -O /root/slowdns/multiplexer.py "https://raw.githubusercontent.com/izzstores/sctun-v4/main/limit/multiplexer.py" && chmod 700 /root/slowdns/multiplexer.py
 wget -q -O /etc/systemd/system/slowdns-mux.service "https://raw.githubusercontent.com/izzstores/sctun-v4/main/limit/slowdns-mux.service"
+
+cat > /etc/systemd/system/slowdns.service <<'SRVEOF'
+[Unit]
+Description=SlowDNS Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/slowdns
+EnvironmentFile=/root/slowdns/slowdns.env
+ExecStartPre=/bin/bash -c 'iptables -w -C INPUT -p udp --dport 53 -j ACCEPT 2>/dev/null || iptables -w -I INPUT -p udp --dport 53 -j ACCEPT'
+ExecStart=/root/slowdns/slowdns -udp ${SLOWDNS_UDP} -privkey-file ${SLOWDNS_KEY} ${SLOWDNS_DOMAIN} ${SLOWDNS_UPSTREAM}
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+SRVEOF
+
 systemctl daemon-reload >/dev/null 2>&1
 systemctl enable --now slowdns-mux.service &>/dev/null || true
+systemctl restart slowdns-mux.service &>/dev/null || true
+if [ -s /root/slowdns/slowdns.env ]; then
+    systemctl enable --now slowdns.service &>/dev/null || true
+    systemctl restart slowdns.service &>/dev/null || true
+fi
+
 echo 'if [ -t 0 ]; then stty erase "^?" 2>/dev/null || stty erase "^H" 2>/dev/null; fi' >> /root/.bashrc
 echo 'if [ -t 0 ]; then stty erase "^?" 2>/dev/null || stty erase "^H" 2>/dev/null; fi' >> /etc/profile
 

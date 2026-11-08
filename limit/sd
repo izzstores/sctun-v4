@@ -17,7 +17,7 @@ GREEN='\033[0;32m'
 ORANGE='\033[0;33m'
 LIGHT='\033[0;37m'
 grenbo="\e[92;1m"
-# Getting
+
 CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" 2>/dev/null | cut -d ' ' -f 3)
 KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" 2>/dev/null | cut -d ' ' -f 2)
 export TIME="10"
@@ -27,16 +27,27 @@ CITY=$(curl -s ipinfo.io/city 2>/dev/null )
 SLOWDNS_DIR=/root/slowdns
 ENV_FILE="$SLOWDNS_DIR/slowdns.env"
 PUB_FILE="$SLOWDNS_DIR/server.pub"
-[ -r "$ENV_FILE" ] || { echo "Konfigurasi SlowDNS tidak ditemukan: $ENV_FILE" >&2; exit 1; }
-[ -r "$PUB_FILE" ] || { echo "Public key SlowDNS tidak ditemukan: $PUB_FILE" >&2; exit 1; }
-# Main host is shared by SSH and Xray accounts; NS is only for SlowDNS transport.
+
+if [ ! -r "$ENV_FILE" ]; then
+    if [ -r "/etc/slowdns/slowdns.env" ]; then
+        mkdir -p /root/slowdns
+        cp -f /etc/slowdns/slowdns.env "$ENV_FILE"
+        cp -f /etc/slowdns/server.pub "$PUB_FILE" 2>/dev/null || true
+    else
+        echo -e "${red}Konfigurasi SlowDNS belum ditemukan! Silakan atur di menu SlowDNS.${NC}"
+        /usr/local/sbin/m-slowdns
+        exit 0
+    fi
+fi
+
 MAIN_DOMAIN_FILE=/etc/xray/domain
 [ -r "$MAIN_DOMAIN_FILE" ] || MAIN_DOMAIN_FILE=/root/domain
-[ -r "$MAIN_DOMAIN_FILE" ] || { echo "Domain utama tidak ditemukan: $MAIN_DOMAIN_FILE" >&2; exit 1; }
-domain="$(tr -d '[:space:]' < "$MAIN_DOMAIN_FILE")"
-[ -n "$domain" ] || { echo "Domain utama kosong: $MAIN_DOMAIN_FILE" >&2; exit 1; }
-ns_domain=$(awk -F= '$1=="SLOWDNS_DOMAIN" {gsub(/^"|"$/, "", $2); print $2; exit}' "$ENV_FILE")
-[ -n "$ns_domain" ] || { echo "SLOWDNS_DOMAIN belum diatur di $ENV_FILE" >&2; exit 1; }
+domain="localhost"
+[ -r "$MAIN_DOMAIN_FILE" ] && domain="$(tr -d '[:space:]' < "$MAIN_DOMAIN_FILE")"
+
+ns_domain=$(awk -F= '$1=="SLOWDNS_DOMAIN" {gsub(/^"|"$/, "", $2); print $2; exit}' "$ENV_FILE" 2>/dev/null)
+PUB=$(cat "$PUB_FILE" 2>/dev/null)
+
 clear
 echo -e "\033[1;93m┌───────────────────────────┐\033[0m"
 read -e -p "   Username      : " Login
@@ -46,7 +57,6 @@ echo -e "\033[1;93m└───────────────────�
 IP=$(curl -sS ifconfig.me 2>/dev/null || wget -qO- ipinfo.io/ip 2>/dev/null);
 domen="$domain"
 NS="$ns_domain"
-PUB=$(cat "$PUB_FILE")
 
 clear
 tgl=$(date -d "$masaaktif days" +"%d" 2>/dev/null)
@@ -96,5 +106,4 @@ echo -e " Dibuat Pada    : $tnggl"
 echo -e " Berakhir Pada  : $expe"
 echo -e " ◇━━━━━━━━━━━━━━━━━━━━━━━━━━━━◇"
 echo ""
-read -n 1 -s -r -p "Press any key to back on menu"
-menu
+read -n 1 -s -r -p "Tekan Enter untuk kembali ke menu..."

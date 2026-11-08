@@ -14,18 +14,137 @@ NC="\e[0m"
 SLOWDNS_DIR=/root/slowdns
 ENV_FILE="$SLOWDNS_DIR/slowdns.env"
 PUB_FILE="$SLOWDNS_DIR/server.pub"
+KEY_FILE="$SLOWDNS_DIR/server.key"
 DOMAIN_FILE="/etc/xray/domain"
 [ -r "$DOMAIN_FILE" ] || DOMAIN_FILE="/root/domain"
 
-[ -r "$ENV_FILE" ] || { echo "Konfigurasi SlowDNS tidak ditemukan: $ENV_FILE"; exit 1; }
-[ -r "$PUB_FILE" ] || { echo "Public key SlowDNS tidak ditemukan: $PUB_FILE"; exit 1; }
-[ -r "$DOMAIN_FILE" ] || { echo "Domain utama tidak ditemukan: $DOMAIN_FILE"; exit 1; }
+setup_slowdns() {
+    clear
+    echo -e "${cyan}◇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◇${NC}"
+    echo -e "${Bold}             SETUP NAMESERVER SLOWDNS                  ${NC}"
+    echo -e "${cyan}◇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◇${NC}"
+    echo -e " SlowDNS belum dikonfigurasi di server ini."
+    echo -e " Masukkan Nameserver (NS) yang sudah Anda arahkan ke IP VPS."
+    echo -e " Contoh: ${green}ns.domainanda.com${NC} atau ${green}sdns.domainanda.com${NC}"
+    echo -e "${cyan}◇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◇${NC}"
+    read -e -p " Masukkan NS SlowDNS (atau 'x' untuk batal): " input_ns
 
-MAIN_DOMAIN="$(tr -d '[:space:]' < "$DOMAIN_FILE")"
-NS_DOMAIN=$(awk -F= '$1=="SLOWDNS_DOMAIN" {gsub(/^"|"$/, "", $2); print $2; exit}' "$ENV_FILE")
+    if [[ "$input_ns" == "x" || "$input_ns" == "X" || -z "$input_ns" ]]; then
+        echo -e "${red}Setup SlowDNS dibatalkan.${NC}"
+        sleep 1
+        menu
+        exit 0
+    fi
+
+    mkdir -p /root/slowdns /etc/slowdns
+    # Download binary jika belum ada
+    if [ ! -f /root/slowdns/slowdns ]; then
+        wget -q -O /root/slowdns/slowdns "https://raw.githubusercontent.com/izzstores/sctun-v4/main/limit/slowdns"
+        chmod 700 /root/slowdns/slowdns
+    fi
+    ln -sf /root/slowdns/slowdns /etc/slowdns/slowdns 2>/dev/null || true
+
+    # Generate keys jika belum ada
+    if [ ! -f "$KEY_FILE" ]; then
+        /root/slowdns/slowdns -gen-key -privkey-file "$KEY_FILE" -pubkey-file "$PUB_FILE"
+        chmod 600 "$KEY_FILE"
+        chmod 644 "$PUB_FILE"
+    fi
+    cp -f "$KEY_FILE" /etc/slowdns/server.key 2>/dev/null || true
+    cp -f "$PUB_FILE" /etc/slowdns/server.pub 2>/dev/null || true
+
+    # Download multiplexer jika belum ada
+    if [ ! -f /root/slowdns/multiplexer.py ]; then
+        wget -q -O /root/slowdns/multiplexer.py "https://raw.githubusercontent.com/izzstores/sctun-v4/main/limit/multiplexer.py"
+        chmod 700 /root/slowdns/multiplexer.py
+    fi
+
+    # Pasang multiplexer service
+    cat > /etc/systemd/system/slowdns-mux.service <<'MUXEOF'
+[Unit]
+Description=SlowDNS Protocol Multiplexer (SSH & Xray)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/python3 /root/slowdns/multiplexer.py
+Restart=always
+RestartSec=2s
+
+[Install]
+WantedBy=multi-user.target
+MUXEOF
+
+    # Tulis konfigurasi env
+    cat > "$ENV_FILE" <<ENVEOF
+SLOWDNS_UDP=":53"
+SLOWDNS_DOMAIN="$input_ns"
+SLOWDNS_UPSTREAM="127.0.0.1:10053"
+SLOWDNS_KEY="$KEY_FILE"
+ENVEOF
+    chmod 600 "$ENV_FILE"
+    cp -f "$ENV_FILE" /etc/slowdns/slowdns.env 2>/dev/null || true
+    echo "$input_ns" > /etc/xray/dns 2>/dev/null || true
+
+    # Pasang slowdns service
+    IPTABLES_BIN="$(command -v iptables 2>/dev/null || echo '/sbin/iptables')"
+    cat > /etc/systemd/system/slowdns.service <<SRVEOF
+[Unit]
+Description=SlowDNS Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/slowdns
+EnvironmentFile=/root/slowdns/slowdns.env
+ExecStartPre=/bin/bash -c '$IPTABLES_BIN -w -C INPUT -p udp --dport 53 -j ACCEPT 2>/dev/null || $IPTABLES_BIN -w -I INPUT -p udp --dport 53 -j ACCEPT'
+ExecStart=/root/slowdns/slowdns -udp \${SLOWDNS_UDP} -privkey-file \${SLOWDNS_KEY} \${SLOWDNS_DOMAIN} \${SLOWDNS_UPSTREAM}
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+SRVEOF
+
+    systemctl daemon-reload
+    systemctl enable --now slowdns-mux.service >/dev/null 2>&1 || true
+    systemctl restart slowdns-mux.service >/dev/null 2>&1 || true
+    systemctl enable --now slowdns.service >/dev/null 2>&1 || true
+    systemctl restart slowdns.service >/dev/null 2>&1 || true
+
+    echo -e "${green}✓ SlowDNS berhasil diaktifkan dengan NS: ${input_ns}${NC}"
+    sleep 2
+}
+
+# Cek apakah SlowDNS sudah ada konfigurasi
+if [ ! -r "$ENV_FILE" ]; then
+    if [ -r "/etc/slowdns/slowdns.env" ]; then
+        mkdir -p /root/slowdns
+        cp -f /etc/slowdns/slowdns.env "$ENV_FILE"
+        cp -f /etc/slowdns/server.pub "$PUB_FILE" 2>/dev/null || true
+        cp -f /etc/slowdns/server.key "$KEY_FILE" 2>/dev/null || true
+    else
+        setup_slowdns
+    fi
+fi
+
+if [ ! -r "$PUB_FILE" ]; then
+    if [ -r "/etc/slowdns/server.pub" ]; then
+        cp -f /etc/slowdns/server.pub "$PUB_FILE"
+    else
+        setup_slowdns
+    fi
+fi
+
+MAIN_DOMAIN="localhost"
+[ -r "$DOMAIN_FILE" ] && MAIN_DOMAIN="$(tr -d '[:space:]' < "$DOMAIN_FILE")"
+NS_DOMAIN=$(awk -F= '$1=="SLOWDNS_DOMAIN" {gsub(/^"|"$/, "", $2); print $2; exit}' "$ENV_FILE" 2>/dev/null)
 PUB_KEY=$(cat "$PUB_FILE" 2>/dev/null)
 IP=$(curl -sS ifconfig.me 2>/dev/null || curl -sS icanhazip.com 2>/dev/null)
 
+while true; do
 clear
 echo -e "${cyan}◇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◇${NC}"
 echo -e "${Bold}             SLOWDNS MULTI-TUNNEL MANAGER              ${NC}"
@@ -40,9 +159,10 @@ echo -e " [2] Buat Akun VLESS SlowDNS (WebSocket)"
 echo -e " [3] Buat Akun VMess SlowDNS (WebSocket)"
 echo -e " [4] Buat Akun Trojan SlowDNS (WebSocket)"
 echo -e " [5] Info Server & Public Key"
-echo -e " [x] Keluar"
+echo -e " [6] Ganti / Re-Setup NS SlowDNS"
+echo -e " [x] Kembali ke Menu Utama"
 echo -e "${cyan}◇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◇${NC}"
-read -e -p " Pilih opsi [1-5 / x]: " opt
+read -e -p " Pilih opsi [1-6 / x]: " opt
 
 case "$opt" in
     1)
@@ -50,15 +170,12 @@ case "$opt" in
         ;;
     2)
         /usr/local/sbin/addvless
-        menu
         ;;
     3)
         /usr/local/sbin/addws
-        menu
         ;;
     4)
         /usr/local/sbin/addtr
-        menu
         ;;
     5)
         clear
@@ -77,7 +194,11 @@ case "$opt" in
         echo -e "  • Trojan WebSocket (Path: /trojan-ws)"
         echo -e "${cyan}◇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◇${NC}"
         read -n 1 -s -r -p "Tekan tombol apa saja untuk kembali..."
-        /usr/local/sbin/m-slowdns
+        ;;
+    6)
+        setup_slowdns
+        NS_DOMAIN=$(awk -F= '$1=="SLOWDNS_DOMAIN" {gsub(/^"|"$/, "", $2); print $2; exit}' "$ENV_FILE" 2>/dev/null)
+        PUB_KEY=$(cat "$PUB_FILE" 2>/dev/null)
         ;;
     x|X)
         menu
@@ -86,6 +207,6 @@ case "$opt" in
     *)
         echo -e "${red}Pilihan tidak valid!${NC}"
         sleep 1
-        /usr/local/sbin/m-slowdns
         ;;
 esac
+done
